@@ -1,0 +1,38 @@
+# Maven specific
+/target/
+/build/
+/mvnw
+/mvnw.cmd
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDE specific
+/.idea/
+*.iml
+*.ipr
+*.iws
+*.classpath
+*.project
+.idea/
+.idea/workspace.xml
+
+# Logs
+logs/
+*.log
+
+# Test coverage reports
+coverage/
+
+# Dependency directory
+/bin/
+/lib/
+
+# Compiled Java classes
+*.class
+
+# Gradle specific
+.gradle/
+build/
+
+# Miscellaneous
+.DS_Store
+Thumbs.db
