@@ -1,6 +1,9 @@
 package org.kirill.space.cell.crpt_api.servise;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -28,14 +31,18 @@ public class CrptApi {
         scheduler.scheduleAtFixedRate(semaphore::release, 0, 1, timeUnit);
     }
 
-    public HttpResponse<String> createDocument(Document document, String signature) throws Exception {
+    public Result<HttpResponse<String>> createDocument(Document document, String signature) {
         if (document == null || signature == null) {
-            throw new IllegalArgumentException("Документ и подпись не могут быть пустыми");
+            return Result.failure("Документ и подпись не могут быть пустыми");
         }
 
-        semaphore.acquire();
-
+        boolean acquired = false;
         try {
+            acquired = semaphore.tryAcquire(1, TimeUnit.SECONDS);
+            if (!acquired) {
+                return Result.failure("Тайм-аут получения семафора");
+            }
+
             DocumentRequest documentRequest = new DocumentRequest(document, signature);
             String requestBody = objectMapper.writeValueAsString(documentRequest);
 
@@ -45,13 +52,16 @@ public class CrptApi {
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .build();
 
-            return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            return Result.success(response);
 
         } catch (IOException | InterruptedException e) {
             log.error("Ошибка при создании документа", e);
-            throw e;
+            return Result.failure("Ошибка при создании документа: " + e.getMessage());
         } finally {
-            semaphore.release();
+            if (acquired) {
+                semaphore.release();
+            }
         }
     }
 
@@ -68,5 +78,22 @@ public class CrptApi {
                           String certificateDocumentNumber, String ownerInn,
                           String producerInn, String productionDate,
                           String tnvedCode, String uitCode, String uituCode) {
+    }
+}
+
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Getter
+class Result<T> {
+
+    private final T value;
+
+    private final String error;
+
+    public static <T> Result<T> success(T value) {
+        return new Result<>(value, null);
+    }
+
+    public static <T> Result<T> failure(String error) {
+        return new Result<>(null, error);
     }
 }
