@@ -96,4 +96,8 @@ class Result<T> {
     public static <T> Result<T> failure(String error) {
         return new Result<>(null, error);
     }
+
+    public boolean isSuccess() {
+        return error == null;
+    }
 }
